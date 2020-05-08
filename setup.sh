@@ -91,7 +91,6 @@ userlist_file=/etc/vsftpd.userlist
 userlist_enable=YES
 userlist_deny=NO
 EOF
-exit
 
 echo "done9"
 
