@@ -4,6 +4,8 @@ USERNAME=ftpuser1
 PASSWORD=ftpuser1
 S3BUCKETNAME=ca-s3fs-bucket
 
+echo "done1"
+
 ### STEP 4
 # Install Packages
 sudo yum -y update && \
@@ -20,6 +22,8 @@ fuse-devel \
 curl-devel \
 libxml2-devel
 
+echo "done2"
+
 # Install S3FS Fuse
 git clone https://github.com/s3fs-fuse/s3fs-fuse.git
 cd s3fs-fuse/
@@ -30,6 +34,8 @@ cd s3fs-fuse/
 make
 sudo make install
 
+echo "done3"
+
 # which s3fs
 # s3fs --help
 
@@ -37,8 +43,12 @@ sudo make install
 sudo adduser $USERNAME
 sudo passwd $PASSWORD
 
+echo "done4"
+
 sudo groupadd sftp
 usermod -a -G sftp $USERNAME
+
+echo "done5"
 
 sudo mkdir /home/$USERNAME/ftp
 sudo chown $USERNAME:$USERNAME /home/$USERNAME/ftp
@@ -46,10 +56,16 @@ sudo chmod a-w /home/$USERNAME/ftp
 sudo mkdir /home/$USERNAME/ftp/files
 sudo chown $USERNAME:$USERNAME /home/$USERNAME/ftp/files
 
+echo "done6"
+
 ### STEP 6
 sudo yum -y install vsftpd
 
+echo "done7"
+
 sudo mv /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak
+
+echo "done8"
 
 sudo -s
 EC2_PUBLIC_IP=`curl -s ifconfig.co`
@@ -77,9 +93,13 @@ userlist_deny=NO
 EOF
 exit
 
+echo "done9"
+
 echo $USERNAME | sudo tee -a /etc/vsftpd.userlist
 sudo systemctl start vsftpd
 sudo systemctl status vsftpd
+
+echo "done10"
 
 ### STEP 8
 # EC2METALATEST=http://169.254.169.254/latest
@@ -99,6 +119,8 @@ sudo systemctl status vsftpd
 line=@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o use_cache=/tmp,iam_role=S3FS-Role,allow_other /home/$USERNAME/ftp/files -o url='https://s3.$REGION.amazonaws.com' -o nonempty
 (crontab -u $USERNAME -l; echo "$line" ) | crontab -u $USERNAME -
 
+echo "done11"
+
 ### ADD this to /etc/ssh/sshd_config
 # Users in group "sftp" can use sftp but cannot ssh like normal
 Match group sftp
@@ -107,9 +129,13 @@ X11Forwarding no
 AllowTcpForwarding no
 ForceCommand internal-sftp
 
+echo "done12"
+
 # Turn on Passwords
 PasswordAuthentication yes
 
+echo "done13"
+
 ### to run
 
-echo "done"
+echo "done14"
