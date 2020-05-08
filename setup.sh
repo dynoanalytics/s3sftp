@@ -111,3 +111,5 @@ ForceCommand internal-sftp
 PasswordAuthentication yes
 
 ### to run
+
+echo "done"
