@@ -95,7 +95,9 @@ sudo systemctl status vsftpd
 # -o nonempty
 
 ### ADD this to crontab
-@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o use_cache=/tmp,iam_role=S3FS-Role,allow_other /home/$USERNAME/ftp/files -o url="https://s3.$REGION.amazonaws.com" -o nonempty
+
+line=@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o use_cache=/tmp,iam_role=S3FS-Role,allow_other /home/$USERNAME/ftp/files -o url='https://s3.$REGION.amazonaws.com' -o nonempty
+(crontab -u $USERNAME -l; echo "$line" ) | crontab -u $USERNAME -
 
 ### ADD this to /etc/ssh/sshd_config
 # Users in group "sftp" can use sftp but cannot ssh like normal
