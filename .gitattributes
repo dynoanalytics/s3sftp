@@ -1,0 +1,5 @@
+# Ignore all differences in line endings
+*        -crlf
+
+# Force LF endings on bash scripts
+*.sh text eol=lf
