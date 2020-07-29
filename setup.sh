@@ -1,8 +1,9 @@
 #!/bin/sh
 
-USERNAME=ftpuser1
-PASSWORD=ftpuser1
-S3BUCKETNAME=ca-s3fs-bucket
+ACCOUNT=$1
+S3BUCKETNAME=dyno.$ACCOUNT.sftp.com
+S3BUCKETREGION=$2
+FTPPASSWORD="$ACCOUNT-4321"
 
 echo "done1"
 
@@ -10,6 +11,7 @@ echo "done1"
 # Install Packages
 sudo yum -y update && \
 sudo yum -y install \
+htop \
 jq \
 automake \
 openssl-devel \
@@ -40,101 +42,45 @@ echo "done3"
 # s3fs --help
 
 ### STEP 5
-sudo adduser $USERNAME
-sudo passwd $PASSWORD
+sudo adduser $ACCOUNT
+echo "$ACCOUNT:$FTPPASSWORD" | sudo chpasswd
 
 echo "done4"
 
-sudo groupadd sftp
-usermod -a -G sftp $USERNAME
+# sudo mkdir /home/$ACCOUNT
+# sudo chown nfsnobody:nfsnobody /home/$ACCOUNT
+sudo chmod a-w /home/$ACCOUNT
+# sudo mkdir /home/$ACCOUNT
+sudo chown $ACCOUNT:$ACCOUNT /home/$ACCOUNT
 
 echo "done5"
 
-sudo mkdir /home/$USERNAME/ftp
-sudo chown $USERNAME:$USERNAME /home/$USERNAME/ftp
-sudo chmod a-w /home/$USERNAME/ftp
-sudo mkdir /home/$USERNAME/ftp/files
-sudo chown $USERNAME:$USERNAME /home/$USERNAME/ftp/files
+EC2METALATEST=http://169.254.169.254/latest && \
+EC2METAURL=$EC2METALATEST/meta-data/iam/security-credentials/ && \
+EC2ROLE=`curl -s $EC2METAURL`
+echo "EC2ROLE: $EC2ROLE"
 
 echo "done6"
 
-### STEP 6
-sudo yum -y install vsftpd
+ps -ef | grep  s3fs
 
 echo "done7"
 
-sudo mv /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak
+### ADD this to crontab
+
+line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=$EC2ROLE,allow_other /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
+(sudo crontab -u $ACCOUNT -l; echo $line ) | sudo crontab -u $ACCOUNT -
+
+# ADD this to sudo nano /etc/ssh/sshd_config 
+# Users in group "sftp" can use sftp but cannot ssh like normal
 
 echo "done8"
 
-sudo -s
-EC2_PUBLIC_IP=`curl -s ifconfig.co`
-cat > /etc/vsftpd/vsftpd.conf << EOF
-anonymous_enable=NO
-local_enable=YES
-write_enable=YES
-local_umask=022
-dirmessage_enable=YES
-xferlog_enable=YES
-connect_from_port_20=YES
-xferlog_std_format=YES
-chroot_local_user=YES
-listen=YES
-pam_service_name=vsftpd
-tcp_wrappers=YES
-user_sub_token=\$USER
-local_root=/home/\$USER/ftp
-pasv_min_port=40000
-pasv_max_port=50000
-pasv_address=$EC2_PUBLIC_IP
-userlist_file=/etc/vsftpd.userlist
-userlist_enable=YES
-userlist_deny=NO
-EOF
+sudo groupadd sftp
+sudo sh -c 'usermod -a -G sftp $ACCOUNT'
 
-echo "done9"
+sudo sh -c 'cat /tmp/sshd_config.txt >> /etc/ssh/sshd_config'
 
-echo $USERNAME | sudo tee -a /etc/vsftpd.userlist
-sudo systemctl start vsftpd
-sudo systemctl status vsftpd
+echo "done!"
 
-echo "done10"
-
-### STEP 8
-# EC2METALATEST=http://169.254.169.254/latest
-# EC2METAURL=$EC2METALATEST/meta-data/iam/security-credentials/
-# EC2ROLE=`curl -s $EC2METAURL`
-# DOC=`curl -s $EC2METALATEST/dynamic/instance-identity/document`
-# REGION=`jq -r .region <<< $DOC`
-# echo "EC2ROLE: $EC2ROLE"
-# echo "REGION: $REGION"
-# sudo /usr/local/bin/s3fs $S3BUCKETNAME \
-# -o use_cache=/tmp,iam_role="$EC2ROLE",allow_other /home/$USERNAME/ftp/files \
-# -o url="https://s3.$REGION.amazonaws.com" \
-# -o nonempty
-
-### ADD this to crontab
-
-line=@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o use_cache=/tmp,iam_role=S3FS-Role,allow_other /home/$USERNAME/ftp/files -o url='https://s3.$REGION.amazonaws.com' -o nonempty
-(crontab -u $USERNAME -l; echo "$line" ) | crontab -u $USERNAME -
-
-echo "done11"
-
-### ADD this to /etc/ssh/sshd_config
-# Users in group "sftp" can use sftp but cannot ssh like normal
-Match group sftp
-ChrootDirectory /home
-X11Forwarding no
-AllowTcpForwarding no
-ForceCommand internal-sftp
-
-echo "done12"
-
-# Turn on Passwords
-PasswordAuthentication yes
-
-echo "done13"
-
-### to run
-
-echo "done14"
+# ssh -i "S3FS" ec2-user@$(terraform output public_ip)
