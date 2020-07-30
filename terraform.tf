@@ -26,6 +26,58 @@ data "aws_vpc" "default" {
   default = true
 }
 
+resource "aws_iam_role_policy" "s3fs_policy" {
+  name = "S3FS-Policy"
+  role = aws_iam_role.s3fs_role.id
+
+  policy = <<-EOF
+  {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Action": ["s3:ListBucket"],
+              "Resource": ["arn:aws:s3:::ca-s3fs-bucket"]
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "s3:PutObject",
+                  "s3:GetObject",
+                  "s3:DeleteObject"
+              ],
+              "Resource": ["arn:aws:s3:::ca-s3fs-bucket/*"]
+          }
+      ]
+  }
+  EOF
+}
+
+resource "aws_iam_role" "s3fs_role" {
+  name = "S3FS-Role"
+
+  assume_role_policy = <<-EOF
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": "sts:AssumeRole",
+        "Principal": {
+          "Service": "ec2.amazonaws.com"
+        },
+        "Effect": "Allow",
+        "Sid": ""
+      }
+    ]
+  }
+  EOF
+}
+
+resource "aws_iam_instance_profile" "s3fs_profile" {
+  name = "S3FS-Profile"
+  role = "${aws_iam_role.s3fs_role.name}"
+}
+
 resource "aws_security_group" "sg_22" {
   name = "sg_22"
   vpc_id = data.aws_vpc.default.id
@@ -58,11 +110,12 @@ resource "aws_key_pair" "ec2key" {
 
 resource "aws_instance" "web" {
   tags =  {
-    name = "${aws_key_pair.ec2key.key_name}"
+    name = aws_key_pair.ec2key.key_name
   }
   # ...
   ami = "ami-0323c3dd2da7fb37d"
   instance_type = "t3.micro"
+  iam_instance_profile = aws_iam_instance_profile.s3fs_profile.name
   # subnet_id = "${aws_subnet.subnet_public.id}"
   vpc_security_group_ids = ["${aws_security_group.sg_22.id}"]
   key_name = "${aws_key_pair.ec2key.key_name}"

@@ -49,16 +49,16 @@ echo "done4"
 
 # sudo mkdir /home/$ACCOUNT
 # sudo chown nfsnobody:nfsnobody /home/$ACCOUNT
-sudo chmod a-w /home/$ACCOUNT
+sudo chmod 600 /home/$ACCOUNT
 # sudo mkdir /home/$ACCOUNT
 sudo chown $ACCOUNT:$ACCOUNT /home/$ACCOUNT
 
 echo "done5"
 
-EC2METALATEST=http://169.254.169.254/latest && \
-EC2METAURL=$EC2METALATEST/meta-data/iam/security-credentials/ && \
-EC2ROLE=`curl -s $EC2METAURL`
-echo "EC2ROLE: $EC2ROLE"
+# EC2METALATEST=http://169.254.169.254/latest && \
+# EC2METAURL=$EC2METALATEST/meta-data/iam/security-credentials/ && \
+# EC2ROLE=`curl -s $EC2METAURL`
+# echo "EC2ROLE: $EC2ROLE"
 
 echo "done6"
 
@@ -68,8 +68,8 @@ echo "done7"
 
 ### ADD this to crontab
 
-line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=$EC2ROLE,allow_other /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
-(sudo crontab -u $ACCOUNT -l; echo $line ) | sudo crontab -u $ACCOUNT -
+line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role,allow_other /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
+(echo $line ) | sudo crontab -u $ACCOUNT -
 
 # ADD this to sudo nano /etc/ssh/sshd_config 
 # Users in group "sftp" can use sftp but cannot ssh like normal
@@ -77,9 +77,14 @@ line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=$EC2ROLE,allow_other
 echo "done8"
 
 sudo groupadd sftp
-sudo sh -c 'usermod -a -G sftp $ACCOUNT'
+sudo sh -c "usermod -a -G sftp $ACCOUNT"
 
 sudo sh -c 'cat /tmp/sshd_config.txt >> /etc/ssh/sshd_config'
+
+echo "done9"
+
+# S3BUCKETREGION=us-east-1 S3BUCKETNAME=dyno.fluenthome.sftp.com ACCOUNT=fluenthome /usr/local/bin/s3fs dyno.fluenthome.sftp.com -o iam_role=S3FS-Role -o use_path_request_style -o dbglevel=info -f -o curldbg /home/fluenthome -o url='https://s3.us-east-1.amazonaws.com' -o nonempty
+# ps -ef | grep  s3fs
 
 echo "done!"
 
