@@ -1,3 +1,4 @@
+#Subsystem sftp internal-sftp
 Match group sftp
 ChrootDirectory /home
 X11Forwarding no

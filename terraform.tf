@@ -15,15 +15,27 @@ provider "aws" {
 	profile = "dyno.${terraform.workspace}"
 }
 
+data "aws_route53_zone" "dyno" {
+  name = "${terraform.workspace}.dynoanalytics.xyz"
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+resource "aws_route53_record" "sftp" {  
+  zone_id = data.aws_route53_zone.dyno.zone_id
+  name    = "sftp.${terraform.workspace}.dynoanalytics.xyz"
+  type    = "A"  
+  records = [aws_instance.web.public_ip]  
+  ttl     = "300"
+}
+
 resource "aws_s3_bucket" "sftp" {
   bucket = "dyno.${terraform.workspace}.sftp.com"
   versioning {
     enabled = true
   }
-}
-
-data "aws_vpc" "default" {
-  default = true
 }
 
 resource "aws_iam_role_policy" "s3fs_policy" {
@@ -37,7 +49,9 @@ resource "aws_iam_role_policy" "s3fs_policy" {
           {
               "Effect": "Allow",
               "Action": ["s3:ListBucket"],
-              "Resource": ["arn:aws:s3:::ca-s3fs-bucket"]
+              "Resource": [
+                  "${aws_s3_bucket.sftp.arn}"
+              ]
           },
           {
               "Effect": "Allow",
@@ -46,7 +60,9 @@ resource "aws_iam_role_policy" "s3fs_policy" {
                   "s3:GetObject",
                   "s3:DeleteObject"
               ],
-              "Resource": ["arn:aws:s3:::ca-s3fs-bucket/*"]
+              "Resource": [
+                  "${aws_s3_bucket.sftp.arn}/*"
+              ]
           }
       ]
   }
@@ -75,7 +91,7 @@ resource "aws_iam_role" "s3fs_role" {
 
 resource "aws_iam_instance_profile" "s3fs_profile" {
   name = "S3FS-Profile"
-  role = "${aws_iam_role.s3fs_role.name}"
+  role = aws_iam_role.s3fs_role.name
 }
 
 resource "aws_security_group" "sg_22" {
@@ -116,9 +132,9 @@ resource "aws_instance" "web" {
   ami = "ami-0323c3dd2da7fb37d"
   instance_type = "t3.micro"
   iam_instance_profile = aws_iam_instance_profile.s3fs_profile.name
-  # subnet_id = "${aws_subnet.subnet_public.id}"
-  vpc_security_group_ids = ["${aws_security_group.sg_22.id}"]
-  key_name = "${aws_key_pair.ec2key.key_name}"
+  # subnet_id = aws_subnet.subnet_public.id
+  vpc_security_group_ids = [aws_security_group.sg_22.id]
+  key_name = aws_key_pair.ec2key.key_name
 
   connection {
     type     = "ssh"
@@ -133,7 +149,7 @@ resource "aws_instance" "web" {
     destination = "/tmp/setup.sh"
   }
 
-    provisioner "file" {
+  provisioner "file" {
     source      = "sshd_config.txt"
     destination = "/tmp/sshd_config.txt"
   }
@@ -143,6 +159,10 @@ resource "aws_instance" "web" {
       "chmod +x /tmp/setup.sh",
       "/tmp/setup.sh ${terraform.workspace} us-east-1",
     ]
+  }
+
+  provisioner "local-exec" {
+    command = "aws --profile dyno.${terraform.workspace} ec2 reboot-instances --instance-ids ${self.id}"
   }
 
 }

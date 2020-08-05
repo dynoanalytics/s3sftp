@@ -49,7 +49,7 @@ echo "done4"
 
 # sudo mkdir /home/$ACCOUNT
 # sudo chown nfsnobody:nfsnobody /home/$ACCOUNT
-sudo chmod 600 /home/$ACCOUNT
+sudo chmod 755 /home/$ACCOUNT
 # sudo mkdir /home/$ACCOUNT
 sudo chown $ACCOUNT:$ACCOUNT /home/$ACCOUNT
 
@@ -68,7 +68,7 @@ echo "done7"
 
 ### ADD this to crontab
 
-line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role,allow_other /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
+line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role -o use_path_request_style /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
 (echo $line ) | sudo crontab -u $ACCOUNT -
 
 # ADD this to sudo nano /etc/ssh/sshd_config 
