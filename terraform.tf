@@ -15,12 +15,12 @@ provider "aws" {
 	profile = "dyno.${terraform.workspace}"
 }
 
-data "aws_route53_zone" "dyno" {
-  name = "${terraform.workspace}.dynoanalytics.xyz"
-}
-
 data "aws_vpc" "default" {
   default = true
+}
+
+data "aws_route53_zone" "dyno" {
+  name = "${terraform.workspace}.dynoanalytics.xyz"
 }
 
 resource "aws_route53_record" "sftp" {  
