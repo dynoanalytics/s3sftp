@@ -49,9 +49,10 @@ echo "done4"
 
 # sudo mkdir /home/$ACCOUNT
 # sudo chown nfsnobody:nfsnobody /home/$ACCOUNT
-sudo chmod 755 /home/$ACCOUNT
 # sudo mkdir /home/$ACCOUNT
+sudo chown root:root /home
 sudo chown $ACCOUNT:$ACCOUNT /home/$ACCOUNT
+sudo chmod 755 /home/$ACCOUNT
 
 echo "done5"
 
@@ -68,7 +69,7 @@ echo "done7"
 
 ### ADD this to crontab
 
-line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role -o use_path_request_style /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
+line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role,allow_other -o use_path_request_style /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
 (echo $line ) | sudo crontab -u $ACCOUNT -
 
 # ADD this to sudo nano /etc/ssh/sshd_config 
@@ -79,11 +80,11 @@ echo "done8"
 sudo groupadd sftp
 sudo sh -c "usermod -a -G sftp $ACCOUNT"
 
-sudo sh -c 'cat /tmp/sshd_config.txt >> /etc/ssh/sshd_config'
+sudo sh -c 'cp /tmp/sshd_config.txt /etc/ssh/sshd_config'
 
 echo "done9"
 
-# S3BUCKETREGION=us-east-1 S3BUCKETNAME=dyno.fluenthome.sftp.com ACCOUNT=fluenthome /usr/local/bin/s3fs dyno.fluenthome.sftp.com -o iam_role=S3FS-Role -o use_path_request_style -o dbglevel=info -f -o curldbg /home/fluenthome -o url='https://s3.us-east-1.amazonaws.com' -o nonempty
+# S3BUCKETREGION=us-east-1 S3BUCKETNAME=dyno.fluenthome.sftp.com ACCOUNT=fluenthome /usr/local/bin/s3fs dyno.fluenthome.sftp.com -o iam_role=S3FS-Role,allow_other -o use_path_request_style -o dbglevel=info -f -o curldbg /home/fluenthome -o url='https://s3.us-east-1.amazonaws.com' -o nonempty
 # ps -ef | grep  s3fs
 
 echo "done!"
