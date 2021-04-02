@@ -69,7 +69,9 @@ echo "done7"
 
 ### ADD this to crontab
 
-line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role,allow_other -o use_path_request_style /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty" 
+line="@reboot /usr/local/bin/s3fs $S3BUCKETNAME -o iam_role=S3FS-Role -o use_path_request_style /home/$ACCOUNT -o url='https://s3.$S3BUCKETREGION.amazonaws.com' -o nonempty \ "
+# * * * * * cd /home/$ACCOUNT/reports && d=$(date +'\%Y-\%m-\%d') find . -type f -name 'FTP_Call_Report.csv*' -exec sh -c 'x=\"{}\"; mv \"$x\" \"FTP_Call_Report_$(echo $d).csv\"' \; \
+# * * * * * cd /home/$ACCOUNT/reports && d=$(date +'\%Y-\%m-\%d') find . -type f -name 'FTP_Agent_State_Details.csv*' -exec sh -c 'x=\"{}\"; mv \"$x\" \"FTP_Agent_State_Details_$(echo $d).csv\"' \; " 
 (echo $line ) | sudo crontab -u $ACCOUNT -
 
 # ADD this to sudo nano /etc/ssh/sshd_config 
