@@ -139,7 +139,7 @@ AuthorizedKeysCommand /opt/aws/bin/eic_run_authorized_keys %u %f
 AuthorizedKeysCommandUser ec2-instance-connect#
 
 Match group sftp
-ChrootDirectory /home
+ChrootDirectory /data
 X11Forwarding no
 AllowTcpForwarding no
 ForceCommand internal-sftp -d /%u
