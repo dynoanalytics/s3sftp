@@ -9,6 +9,11 @@ terraform {
 	}
 }
 
+# VARIABLES
+variable "USERS" {
+  type = string
+}
+
 # PROVIDERS
 provider "aws" {
 	region = "us-east-1"
@@ -26,8 +31,10 @@ data "aws_route53_zone" "dyno" {
 resource "aws_route53_record" "sftp" {  
   zone_id = data.aws_route53_zone.dyno.zone_id
   name    = "sftp.${terraform.workspace}.dynoanalytics.xyz"
-  type    = "A"  
-  records = [aws_instance.web.public_ip]  
+  # type    = "A"  
+  # records = [aws_instance.web.public_ip]  
+  type    = "CNAME"  
+  records = [aws_instance.web.public_dns]  
   ttl     = "300"
 }
 
@@ -157,7 +164,7 @@ resource "aws_instance" "web" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/setup.sh",
-      "/tmp/setup.sh ${terraform.workspace} us-east-1",
+      "sudo /tmp/setup.sh ${terraform.workspace} us-east-1 \"${var.USERS}\"",
     ]
   }
 
