@@ -40,9 +40,9 @@ resource "aws_route53_record" "sftp" {
 
 resource "aws_s3_bucket" "sftp" {
   bucket = "dyno.${terraform.workspace}.sftp.com"
-  versioning {
-    enabled = true
-  }
+  # versioning {
+  #   enabled = true
+  # }
 }
 
 resource "aws_s3_bucket_versioning" "sftp" {
