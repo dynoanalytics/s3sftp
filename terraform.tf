@@ -1,12 +1,12 @@
-  
+
 terraform {
-	backend "s3" {
-		bucket = "terraform.dyno.com"
-		key    = "terraform.tfstate"
-		region = "us-east-1"
-		profile = "dyno"
-		workspace_key_prefix = "s3sftp"
-	}
+  backend "s3" {
+    bucket               = "terraform.dyno.com"
+    key                  = "terraform.tfstate"
+    region               = "us-east-1"
+    profile              = "dyno"
+    workspace_key_prefix = "s3sftp"
+  }
 }
 
 # VARIABLES
@@ -16,8 +16,8 @@ variable "USERS" {
 
 # PROVIDERS
 provider "aws" {
-	region = "us-east-1"
-	profile = "dyno.${terraform.workspace}"
+  region  = "us-east-1"
+  profile = "dyno.${terraform.workspace}"
 }
 
 data "aws_vpc" "default" {
@@ -28,13 +28,13 @@ data "aws_route53_zone" "dyno" {
   name = "${terraform.workspace}.dynoanalytics.xyz"
 }
 
-resource "aws_route53_record" "sftp" {  
+resource "aws_route53_record" "sftp" {
   zone_id = data.aws_route53_zone.dyno.zone_id
   name    = "sftp.${terraform.workspace}.dynoanalytics.xyz"
   # type    = "A"  
   # records = [aws_instance.web.public_ip]  
-  type    = "CNAME"  
-  records = [aws_instance.web.public_dns]  
+  type    = "CNAME"
+  records = [aws_instance.web.public_dns]
   ttl     = "300"
 }
 
@@ -42,6 +42,14 @@ resource "aws_s3_bucket" "sftp" {
   bucket = "dyno.${terraform.workspace}.sftp.com"
   versioning {
     enabled = true
+  }
+}
+
+resource "aws_s3_bucket_versioning" "sftp" {
+  bucket = aws_s3_bucket.sftp.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -102,13 +110,13 @@ resource "aws_iam_instance_profile" "s3fs_profile" {
 }
 
 resource "aws_security_group" "sg_22" {
-  name = "sg_22"
+  name   = "sg_22"
   vpc_id = data.aws_vpc.default.id
   ingress {
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
     from_port   = 0
@@ -122,7 +130,7 @@ resource "aws_security_group" "sg_22" {
 }
 
 resource "aws_key_pair" "ec2key" {
-  key_name = "S3FS"
+  key_name   = "S3FS"
   public_key = file("S3FS.pub")
 }
 
@@ -132,22 +140,22 @@ resource "aws_key_pair" "ec2key" {
 # }
 
 resource "aws_instance" "web" {
-  tags =  {
+  tags = {
     name = aws_key_pair.ec2key.key_name
   }
   # ...
-  ami = "ami-0323c3dd2da7fb37d"
-  instance_type = "t3.micro"
+  ami                  = "ami-0323c3dd2da7fb37d"
+  instance_type        = "t3.micro"
   iam_instance_profile = aws_iam_instance_profile.s3fs_profile.name
   # subnet_id = aws_subnet.subnet_public.id
   vpc_security_group_ids = [aws_security_group.sg_22.id]
-  key_name = aws_key_pair.ec2key.key_name
+  key_name               = aws_key_pair.ec2key.key_name
 
   connection {
-    type     = "ssh"
-    user     = "ec2-user"
-    password = ""
-    host = self.public_ip
+    type        = "ssh"
+    user        = "ec2-user"
+    password    = ""
+    host        = self.public_ip
     private_key = file(aws_key_pair.ec2key.key_name)
   }
 
